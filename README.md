@@ -1,4 +1,4 @@
-<img width="1917" height="1077" alt="image" src="https://github.com/user-attachments/assets/96b99984-7ce0-4429-9a4d-154d0c0434d5" /># Bài tập Hệ quản trị cơ sở dữ liệu (TEE560)
+# Bài tập Hệ quản trị cơ sở dữ liệu (TEE560)
 ## Thông tin sinh viên:
 + **Họ và tên:** Trần Lâm Vũ
 + **Lớp:** K59KMT.K01

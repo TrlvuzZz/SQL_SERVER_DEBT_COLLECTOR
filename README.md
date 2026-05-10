@@ -1,4 +1,4 @@
-# Bài tập Hệ quản trị cơ sở dữ liệu (TEE560)
+<img width="1917" height="1077" alt="image" src="https://github.com/user-attachments/assets/a6066fc5-819a-42ee-a8a7-f889ed8f24cd" /># Bài tập Hệ quản trị cơ sở dữ liệu (TEE560)
 ## Thông tin sinh viên:
 + **Họ và tên:** Trần Lâm Vũ
 + **Lớp:** K59KMT.K01
@@ -365,7 +365,6 @@ BEGIN
 END
 GO
 ```
-
 <img width="1917" height="1077" alt="image" src="https://github.com/user-attachments/assets/23d10e19-f2e1-4461-9300-8a9e94e5431b" />
 
 + Test procedure
@@ -379,6 +378,62 @@ GO
 
 + Xem tài sản
 <img width="1917" height="1077" alt="image" src="https://github.com/user-attachments/assets/e4b78741-297a-4a06-8b36-92e1605b7629" />
+
+#### Event 4: Truy vấn danh sách nợ xấu (Nợ khó đòi) 
+Xuất danh sách các khách hàng đã quá Deadline 1 mà chưa thanh toán. 
+Yêu cầu các cột: Tên KH, Số điện thoại, Số tiền vay gốc, Số ngày quá hạn, Tổng tiền phải 
+trả hiện tại (đến ngày hiện tại), Tổng số tiền phải trả sau 1 tháng nữa. 
+```sql
+CREATE VIEW vw_DanhSachNoXau
+AS
+SELECT
+    nc.TenKhach,
+    nc.SDT,
+    pc.TienVayGoc,
+    DATEDIFF
+    (
+        DAY,
+        pc.HanLaiDon,
+        GETDATE()
+    ) AS SoNgayQuaHan,
+    dbo.fn_CalcMoneyContract
+    (
+        pc.MaPhieuCam,
+        GETDATE()
+    ) AS TongTienHienTai,
+    dbo.fn_CalcMoneyContract
+    (
+        pc.MaPhieuCam,
+        DATEADD(MONTH, 1, GETDATE())
+    ) AS TongTienSau1Thang
+FROM PhieuCamDo pc
+JOIN NguoiCamDo nc
+ON pc.MaNguoiCam = nc.MaNguoiCam
+WHERE
+    GETDATE() > pc.HanLaiDon
+    AND pc.TrangThaiPhieu
+        <> N'Đã thanh toán đủ'
+GO
+```
+<img width="1917" height="1077" alt="image" src="https://github.com/user-attachments/assets/07c53902-18b1-4778-a260-e57b23a4b1cf" />
+
++ Xem danh sách nợ xấu
+<img width="1917" height="1077" alt="image" src="https://github.com/user-attachments/assets/9af9a407-22d8-4628-bad5-f4f3379e2524" />
+
+#### Event 5: Quản lý thanh lý tài sản 
+1, Viết một Trigger tự động chuyển trạng thái hợp đồng sang "Quá hạn (nợ xấu)" sau khi hợp 
+đồng đang ở trạng thái "Đang vay" mà ngày vượt quá Deadline 1. 
+
+2, Viết một Trigger tự động chuyển trạng thái tài sản sang "Sẵn sàng thanh lý" sau khi hợp 
+đồng đang ở trạng thái "Quá hạn (nợ xấu)" mà ngày vượt quá Deadline 2. 
+
+3, Viết một Trigger tự động chuyển trạng thái tài sản thành “Đã bán thanh lý” sau khi trạng 
+thái của hợp đồng chuyển sang "Đã thanh lý". 
+Chú ý: Mỗi tài sản cũng được theo dõi trạng thái: đang cầm cố, đã trả khách, đã bán thanh lý 
+
+
+
+
 
 
 

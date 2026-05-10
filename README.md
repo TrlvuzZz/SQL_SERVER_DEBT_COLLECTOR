@@ -163,8 +163,7 @@ GO
 <img width="1917" height="1077" alt="image" src="https://github.com/user-attachments/assets/83e86b91-8f35-490e-9c38-78621789f60c" />
 
 #### Event 2: Tính toán công nợ thời gian thực 
-1, Viết một Function fn_CalcMoneyTransaction(TransactionID, TargetDate) để tính số tiền 
-phải trả của TransactionID này cho đến ngày TargetDate
+1, Viết một Function fn_CalcMoneyContract(ContractID, TargetDate) để tính tổng số tiền khách(ContractID) phải trả (Gốc + Lãi đơn + Lãi kép) tính đến ngày TargetDate.
 ```sql
 CREATE FUNCTION fn_CalcMoneyContract
 (
@@ -240,8 +239,7 @@ GO
 + Test function
 <img width="1917" height="1077" alt="image" src="https://github.com/user-attachments/assets/340856c8-5a5c-484a-83ff-c334b0c9e4a5" />
 
-2, Viết một Function fn_CalcMoneyContract(ContractID, TargetDate) để tính tổng số tiền 
-khách(ContractID) phải trả (Gốc + Lãi đơn + Lãi kép) tính đến ngày TargetDate.
+2, Viết một Function fn_CalcMoneyTransaction(TransactionID, TargetDate) để tính số tiền phải trả của TransactionID này cho đến ngày TargetDate
 ```sql
 CREATE FUNCTION fn_CalcMoneyTransaction
 (

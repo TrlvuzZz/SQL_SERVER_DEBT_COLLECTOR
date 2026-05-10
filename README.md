@@ -423,13 +423,157 @@ GO
 #### Event 5: Quản lý thanh lý tài sản 
 1, Viết một Trigger tự động chuyển trạng thái hợp đồng sang "Quá hạn (nợ xấu)" sau khi hợp 
 đồng đang ở trạng thái "Đang vay" mà ngày vượt quá Deadline 1. 
+```sql
+CREATE TRIGGER trg_ChuyenQuaHan
+ON PhieuCamDo
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    UPDATE PhieuCamDo
+    SET TrangThaiPhieu = N'Quá hạn'
+    WHERE
+        GETDATE() > HanLaiDon
+        AND TrangThaiPhieu = N'Đang vay'
+END
+GO
+```
+<img width="1917" height="1077" alt="image" src="https://github.com/user-attachments/assets/fe65f3b2-82f0-4f5d-81e7-369aab32e816" />
+
++ Test Trigger
+<img width="1917" height="1077" alt="image" src="https://github.com/user-attachments/assets/5b7d134d-bbe8-4162-9348-0877c4e5c72c" />
 
 2, Viết một Trigger tự động chuyển trạng thái tài sản sang "Sẵn sàng thanh lý" sau khi hợp 
 đồng đang ở trạng thái "Quá hạn (nợ xấu)" mà ngày vượt quá Deadline 2. 
+```sql
+CREATE TRIGGER trg_SanSangThanhLy
+ON PhieuCamDo
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    UPDATE DoCam
+    SET TrangThaiDo = N'Sẵn sàng thanh lý'
+    WHERE MaPhieuCam IN
+    (
+        SELECT MaPhieuCam
+        FROM PhieuCamDo
+        WHERE
+            GETDATE() > HanThanhLy
+            AND TrangThaiPhieu = N'Quá hạn'
+    )
+END
+GO
+```
+<img width="1917" height="1077" alt="image" src="https://github.com/user-attachments/assets/c4fa6083-432b-432a-9c88-337491d660fd" />
+
++ Test Trigger
+<img width="1917" height="1077" alt="image" src="https://github.com/user-attachments/assets/eafcecd3-6a34-4cf0-92a9-5e51aebf8270" />
 
 3, Viết một Trigger tự động chuyển trạng thái tài sản thành “Đã bán thanh lý” sau khi trạng 
 thái của hợp đồng chuyển sang "Đã thanh lý". 
 Chú ý: Mỗi tài sản cũng được theo dõi trạng thái: đang cầm cố, đã trả khách, đã bán thanh lý 
+```sql
+CREATE TRIGGER trg_DaBanThanhLy
+ON PhieuCamDo
+AFTER UPDATE
+AS
+BEGIN
+    UPDATE DoCam
+    SET
+        TrangThaiDo = N'Đã bán thanh lý',
+        DaBanThanhLy = 1
+    WHERE MaPhieuCam IN
+    (
+        SELECT MaPhieuCam
+        FROM inserted
+        WHERE TrangThaiPhieu = N'Đã thanh lý'
+    )
+END
+GO
+```
+<img width="1917" height="1077" alt="image" src="https://github.com/user-attachments/assets/48c7fd95-0d86-4b57-843d-42ae587894fa" />
+
++ Test Trigger
+<img width="1917" height="1077" alt="image" src="https://github.com/user-attachments/assets/28a876a2-9469-4a1d-8f6b-b4fb1ed12398" />
+
+4, Kết quả
+<img width="1917" height="1077" alt="image" src="https://github.com/user-attachments/assets/10ed1929-2f7f-4064-a85f-09615b317a76" />
+<img width="1917" height="1077" alt="image" src="https://github.com/user-attachments/assets/5dc16226-4b88-432e-9576-268f255c994f" />
+
+### Các sự kiện bổ sung:
++ Tạo `sp_GiaHanHopDong`
+```sql
+CREATE PROC sp_GiaHanHopDong
+(
+    @MaPhieuCam INT,
+    @SoNgayGiaHan INT
+)
+AS
+BEGIN
+    DECLARE
+        @TienLai DECIMAL(18,2),
+        @TienConNo DECIMAL(18,2)
+    -- Tính tiền lãi hiện tại
+    SET @TienLai =
+        dbo.fn_CalcMoneyContract
+        (
+            @MaPhieuCam,
+            GETDATE()
+        )
+    SELECT
+        @TienConNo = TienVayGoc
+    FROM PhieuCamDo
+    WHERE MaPhieuCam = @MaPhieuCam
+    -- Chỉ lấy phần lãi
+    SET @TienLai =
+        @TienLai - @TienConNo
+    -- Ghi log gia hạn
+    INSERT INTO NhatKyDongTien
+    (
+        MaPhieuCam,
+        SoTienKhachTra,
+        SoTienNoConLai
+    )
+    VALUES
+    (
+        @MaPhieuCam,
+        @TienLai,
+        @TienConNo
+    )
+    -- Dời deadline
+    UPDATE PhieuCamDo
+    SET
+        HanLaiDon =
+            DATEADD
+            (
+                DAY,
+                @SoNgayGiaHan,
+                HanLaiDon
+            ),
+        HanThanhLy =
+            DATEADD
+            (
+                DAY,
+                @SoNgayGiaHan,
+                HanThanhLy
+            ),
+        TrangThaiPhieu = N'Đang vay'
+    WHERE MaPhieuCam = @MaPhieuCam
+    PRINT N'Gia hạn hợp đồng thành công'
+END
+GO
+```
+<img width="1917" height="1077" alt="image" src="https://github.com/user-attachments/assets/61846c7a-26b7-46bc-9b29-6e387c29457c" />
+
++ Test gia hạn
+<img width="1917" height="1072" alt="image" src="https://github.com/user-attachments/assets/d96cc769-4d3d-4892-8bd9-fd4a2162281c" />
+
++ Kiểm tra hợp đồng
+<img width="1917" height="1077" alt="image" src="https://github.com/user-attachments/assets/3db94596-03bf-4d6b-aa62-3a4f397e160f" />
+
++ Kiểm tra lịch sử thanh toán
+<img width="1917" height="1077" alt="image" src="https://github.com/user-attachments/assets/39c544ca-9a4d-4e33-87d6-eecd5a78cad4" />
+
+
 
 
 

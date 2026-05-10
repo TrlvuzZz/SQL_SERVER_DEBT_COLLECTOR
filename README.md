@@ -272,8 +272,113 @@ GO
 + Test function
 <img width="1917" height="1077" alt="image" src="https://github.com/user-attachments/assets/bc88b577-a61d-4064-bf87-6a1fd125f7e6" />
 
+#### Event 3: Xử lý trả nợ và hoàn trả tài sản 
+Viết Viết Store Procedure xử lý khi khách mang tiền đến: 
+Nếu tài sản đã bị thanh lý (sau Deadline 2 và có cờ IsSold): Thông báo không thu tiền, 
+không trả đồ. 
+Nếu tài sản chưa bị thanh lý: Tính tổng nợ, trừ số tiền khách trả vào hệ thống. Nếu trả hết 
+tiền, trả hết đồ và cập nhật trạng thái hợp đồng thành “Đã thanh toán đủ”; Nếu chưa trả 
+hết tiền gốc+lãi: cập nhật trạng thái hợp đồng thành “Đang trả góp”, ghi nhận vào LOG số 
+tiền đã trả, và số tiền còn nợ. 
+Đưa ra danh sách gợi ý trả lại cho khách hàng này dựa trên điều kiện:  
+Giá trị tài sản còn lại >= Dư nợ còn lại. 
+```sql
+CREATE PROC sp_ThanhToanHopDong
+(
+    @MaPhieuCam INT,
+    @SoTienTra DECIMAL(18,2)
+)
+AS
+BEGIN
+    DECLARE
+        @TongNo DECIMAL(18,2),
+        @ConNo DECIMAL(18,2)
+    -- Kiểm tra tài sản đã thanh lý chưa
+    IF EXISTS
+    (
+        SELECT *
+        FROM DoCam
+        WHERE
+            MaPhieuCam = @MaPhieuCam
+            AND DaBanThanhLy = 1
+    )
+    BEGIN
+        PRINT N'Tài sản đã bị thanh lý, không thể thanh toán'
+        RETURN
+    END
+    -- Tính tổng nợ hiện tại
+    SET @TongNo =
+        dbo.fn_CalcMoneyContract
+        (
+            @MaPhieuCam,
+            GETDATE()
+        )
+    -- Tính số nợ còn lại
+    SET @ConNo =
+        @TongNo - @SoTienTra
+    -- Ghi log thanh toán
+    INSERT INTO NhatKyDongTien
+    (
+        MaPhieuCam,
+        SoTienKhachTra,
+        SoTienNoConLai
+    )
+    VALUES
+    (
+        @MaPhieuCam,
+        @SoTienTra,
+        @ConNo
+    )
+    -- Cập nhật số nợ còn lại
+    UPDATE PhieuCamDo
+    SET TienConNo = @ConNo
+    WHERE MaPhieuCam = @MaPhieuCam
+    -- Nếu trả hết nợ
+    IF @ConNo <= 0
+    BEGIN
+        -- Cập nhật trạng thái hợp đồng
+        UPDATE PhieuCamDo
+        SET TrangThaiPhieu = N'Đã thanh toán đủ'
+        WHERE MaPhieuCam = @MaPhieuCam
+        -- Trả tài sản cho khách
+        UPDATE DoCam
+        SET TrangThaiDo = N'Đã trả khách'
+        WHERE MaPhieuCam = @MaPhieuCam
+        PRINT N'Khách đã thanh toán đủ'
+    END
+    -- Nếu chưa trả hết
+    ELSE
+    BEGIN
+        UPDATE PhieuCamDo
+        SET TrangThaiPhieu = N'Đang trả góp'
+        WHERE MaPhieuCam = @MaPhieuCam
+        PRINT N'Khách chưa thanh toán hết'
+    END
+    -- Gợi ý tài sản có thể trả
+    SELECT
+        TenDo,
+        GiaTriUocTinh
+    FROM DoCam
+    WHERE
+        MaPhieuCam = @MaPhieuCam
+        AND GiaTriUocTinh >= @ConNo
+END
+GO
+```
 
+<img width="1917" height="1077" alt="image" src="https://github.com/user-attachments/assets/23d10e19-f2e1-4461-9300-8a9e94e5431b" />
 
++ Test procedure
+<img width="1917" height="1077" alt="image" src="https://github.com/user-attachments/assets/a2c2747b-ba82-4ba6-b7f4-fcbf32c60628" />
+
++ Xem log thanh toán
+<img width="1917" height="1077" alt="image" src="https://github.com/user-attachments/assets/7226decd-65cc-4b8f-b552-307ab1027b29" />
+
++ Xem hợp đồng
+<img width="1917" height="1077" alt="image" src="https://github.com/user-attachments/assets/3b32834e-db68-481a-9f02-3205d9f5b78e" />
+
++ Xem tài sản
+<img width="1917" height="1077" alt="image" src="https://github.com/user-attachments/assets/e4b78741-297a-4a06-8b36-92e1605b7629" />
 
 
 

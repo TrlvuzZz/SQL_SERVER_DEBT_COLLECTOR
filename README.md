@@ -59,7 +59,7 @@ CREATE TABLE PhieuCamDo
 ```
 <img width="1917" height="1077" alt="image" src="https://github.com/user-attachments/assets/e4e7e7f8-0a35-4f98-b1e4-0c3402478008" />
 
-+ Tạo bảng đồ đang cầm, hiện vật, tiền mặt - `DoCam`
++ Tạo bảng quản lý tài sản cầm cố - `DoCam`
 ```sql
 CREATE TABLE DoCam
 (
@@ -271,12 +271,12 @@ GO
 <img width="1917" height="1077" alt="image" src="https://github.com/user-attachments/assets/bc88b577-a61d-4064-bf87-6a1fd125f7e6" />
 
 #### Event 3: Xử lý trả nợ và hoàn trả tài sản 
-Viết Viết Store Procedure xử lý khi khách mang tiền đến: 
+Viết Store Procedure xử lý khi khách mang tiền đến: 
 Nếu tài sản đã bị thanh lý (sau Deadline 2 và có cờ IsSold): Thông báo không thu tiền, 
 không trả đồ. 
 Nếu tài sản chưa bị thanh lý: Tính tổng nợ, trừ số tiền khách trả vào hệ thống. Nếu trả hết 
 tiền, trả hết đồ và cập nhật trạng thái hợp đồng thành “Đã thanh toán đủ”; Nếu chưa trả 
-hết tiền gốc+lãi: cập nhật trạng thái hợp đồng thành “Đang trả góp”, ghi nhận vào LOG số 
+hết tiền gốc+lãi: cập nhật trạng thái hợp đồng thành “Đang trả góp”, ghi nhận vào log số 
 tiền đã trả, và số tiền còn nợ. 
 Đưa ra danh sách gợi ý trả lại cho khách hàng này dựa trên điều kiện:  
 Giá trị tài sản còn lại >= Dư nợ còn lại. 
